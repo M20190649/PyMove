@@ -107,6 +107,7 @@ class PandasMoveDataFrame(pd.DataFrame, MoveDataFrameAbstractModel):
             self._data = tdf
             self._type = TYPE_PANDAS
             self.last_operation = None
+
         else:
 
             raise AttributeError(

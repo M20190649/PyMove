@@ -48,6 +48,7 @@ DAY_PERIODS = [
 
 TYPE_DASK = 'dask'
 TYPE_PANDAS = 'pandas'
+TYPE_VAEX = 'vaex'
 
 DIST_TO_PREV = 'dist_to_prev'
 DIST_TO_NEXT = 'dist_to_next'

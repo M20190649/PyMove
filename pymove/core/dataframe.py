@@ -8,6 +8,7 @@ from pymove.utils.constants import (
     TRAJ_ID,
     TYPE_DASK,
     TYPE_PANDAS,
+    TYPE_VAEX
 )
 
 
@@ -61,6 +62,12 @@ class MoveDataFrame:
             from pymove.core.dask import DaskMoveDataFrame
             return DaskMoveDataFrame(
                 data, latitude, longitude, datetime, traj_id, n_partitions
+            )
+
+        if type_ == TYPE_VAEX:
+            from pymove.core.vaex import VaexMoveDataFrame
+            return VaexMoveDataFrame(
+                data, latitude, longitude, datetime, traj_id
             )
 
     @staticmethod
