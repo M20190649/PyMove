@@ -1,11 +1,9 @@
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import vaex 
+import vaex
 
 from pymove.core import MoveDataFrameAbstractModel
 from pymove.core.dataframe import MoveDataFrame
-from pymove.core.grid import Grid
 from pymove.utils.constants import (
     DATE,
     DATETIME,
@@ -38,11 +36,8 @@ from pymove.utils.constants import (
     WEEK_DAYS,
     WEEK_END,
 )
-from pymove.utils.conversions import lat_meters
-from pymove.utils.distances import haversine
-from pymove.utils.log import progress_bar
 from pymove.utils.mem import begin_operation, end_operation
-from pymove.utils.trajectories import shift
+
 
 class VaexMoveDataFrame(vaex.dataframe.DataFrame, MoveDataFrameAbstractModel):
     def __init__(
@@ -96,8 +91,8 @@ class VaexMoveDataFrame(vaex.dataframe.DataFrame, MoveDataFrameAbstractModel):
                     zip_list[i] = zip_list[i]
                 except KeyError:
                     zip_list.append(i)
-            
-            list_data = dict(zip(zip_list,np.transpose(data)))
+
+            list_data = dict(zip(zip_list, np.transpose(data)))
             data = vaex.from_arrays(**list_data)
         elif(isinstance(data, pd.DataFrame)):
             data = vaex.from_pandas(data)
@@ -107,7 +102,7 @@ class VaexMoveDataFrame(vaex.dataframe.DataFrame, MoveDataFrameAbstractModel):
         data.rename(datetime, DATETIME)
         if traj_id in data:
             data.rename(traj_id, TRAJ_ID)
-        
+
         tdf = data
 
         if MoveDataFrame.has_columns(tdf):
@@ -149,6 +144,23 @@ class VaexMoveDataFrame(vaex.dataframe.DataFrame, MoveDataFrameAbstractModel):
                 % DATETIME
             )
         return self._data[DATETIME]
+
+    def __setitem__(self, attr, value):
+        """Modifies and item in this object."""
+        self.__dict__['_data'][attr] = value
+
+    def __getitem__(self, name):
+        """Retrieves and item from this object."""
+        try:
+            item = self.__dict__['_data'][name]
+            if (
+                isinstance(item, vaex.dataframe.DataFrame)
+                and MoveDataFrame.has_columns(item)
+            ):
+                return VaexMoveDataFrame(item)
+            return item
+        except Exception as e:
+            raise e
 
     @property
     def loc(self):
@@ -220,16 +232,39 @@ class VaexMoveDataFrame(vaex.dataframe.DataFrame, MoveDataFrameAbstractModel):
         int
             Represents the trajectory data length.
 
-        """        
+        """
         operation = begin_operation('len')
         len_ = self._data.shape[0]
         self.last_operation = end_operation(operation)
 
         return len_
 
-    def unique(self):
-        """Return unique values of Series object."""
-        raise NotImplementedError('To be implemented')
+    def unique(self, values):
+        """
+        Return unique values of Series object. Uniques are returned
+        in order of appearance.
+        Hash table-based unique, therefore does NOT sort.
+
+        Parameters
+        ----------
+        values : array, list, series or dataframe.
+            The set of values to identify unique occurrences.
+
+        Returns
+        -------
+        ndarray or ExtensionArray
+            The unique values returned as a NumPy array.
+
+        References
+        ----------
+        https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Series.unique.html
+
+        """
+        operation = begin_operation('unique')
+        unique_ = self._data.unique(values)
+        self.last_operation = end_operation(operation)
+
+        return unique_
 
     def head(self, n=5):
         """
@@ -260,7 +295,6 @@ class VaexMoveDataFrame(vaex.dataframe.DataFrame, MoveDataFrameAbstractModel):
 
         return head_
 
-        
     def tail(self, n=5, npartitions=1, compute=True):
         """
         Return the last n rows.
@@ -597,7 +631,6 @@ class VaexMoveDataFrame(vaex.dataframe.DataFrame, MoveDataFrameAbstractModel):
         """
 
         raise NotImplementedError('To be implemented')
-
 
     def get_type(self):
         """
