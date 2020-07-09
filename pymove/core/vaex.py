@@ -295,7 +295,7 @@ class VaexMoveDataFrame(vaex.dataframe.DataFrame, MoveDataFrameAbstractModel):
 
         return head_
 
-    def tail(self, n=5, npartitions=1, compute=True):
+    def tail(self, n=5):
         """
         Return the last n rows.
 
@@ -318,25 +318,62 @@ class VaexMoveDataFrame(vaex.dataframe.DataFrame, MoveDataFrameAbstractModel):
             The last n rows of the caller object.
 
         """
-        return self._data.tail(n, npartitions, compute)
+        operation = begin_operation('tail')
+        tail_ = self._data.tail(n)
+        self.last_operation = end_operation(operation)
+
+        return tail_
 
     def get_users_number(self):
         """Check and return number of users in trajectory data."""
-        raise NotImplementedError('To be implemented')
+        operation = begin_operation('get_users_numbers')
+
+        if UID in self._data:
+            number_ = self._data[UID].nunique()
+        else:
+            number_ = 1
+        self.last_operation = end_operation(operation)
+
+        return number_
 
     def to_numpy(self):
         """Converts trajectory data to numpy array format."""
         raise NotImplementedError('To be implemented')
 
-    def to_dict(self):
+    def to_dict(self,
+                column_names=None,
+                selection=None,
+                strings=True,
+                virtual=True,
+                parallel=True,
+                chunk_size=None,
+                array_type=None):
         """Converts trajectory data to dict format."""
-        raise NotImplementedError('To be implemented')
+
+        operation = begin_operation('to_dict')
+        dict_ = self._data.to_dict(column_names,
+                                   selection,
+                                   strings,
+                                   virtual,
+                                   parallel,
+                                   chunk_size,
+                                   array_type)
+        self.last_operation = end_operation(operation)
+
+        return dict_
 
     def to_grid(self):
         """Converts trajectory data to grid format."""
         raise NotImplementedError('To be implemented')
 
-    def to_data_frame(self):
+    def to_data_frame(self,
+                      column_names=None,
+                      selection=None,
+                      strings=True,
+                      virtual=True,
+                      index_name=None,
+                      parallel=True,
+                      chunk_size=None):
         """
         Converts trajectory data to DataFrame format.
 
@@ -347,15 +384,28 @@ class VaexMoveDataFrame(vaex.dataframe.DataFrame, MoveDataFrameAbstractModel):
 
         """
 
-        raise NotImplementedError('To be implemented')
+        operation = begin_operation('to_data_frame')
+        data_ = self._data.to_pandas_df(column_names,
+                                        selection,
+                                        strings,
+                                        virtual,
+                                        index_name,
+                                        parallel,
+                                        chunk_size)
+        self.last_operation = end_operation(operation)
+
+        return data_
 
     def info(self):
         """Print a concise summary of a DataFrame."""
         raise NotImplementedError('To be implemented')
 
-    def describe(self):
+    def describe(self, strings=True, virtual=True, selection=None):
         """Generate descriptive statistics."""
-        raise NotImplementedError('To be implemented')
+        operation = begin_operation('describe')
+        describe_ = self._data.describe(strings, virtual, selection)
+        self.last_operation = end_operation(operation)
+        return describe_
 
     def memory_usage(self):
         """Return the memory usage of each column in bytes."""
@@ -363,7 +413,10 @@ class VaexMoveDataFrame(vaex.dataframe.DataFrame, MoveDataFrameAbstractModel):
 
     def copy(self):
         """Make a copy of this object’srs indices and data."""
-        raise NotImplementedError('To be implemented')
+        operation = begin_operation('copy')
+        copy_ = VaexMoveDataFrame(self._data.copy())
+        self.last_operation = end_operation(operation)
+        return copy_
 
     def generate_tid_based_on_id_datetime(self):
         """Create or update trajectory id based on id e datetime."""
@@ -415,11 +468,31 @@ class VaexMoveDataFrame(vaex.dataframe.DataFrame, MoveDataFrameAbstractModel):
 
     def time_interval(self):
         """Get time difference between max and min datetime in trajectory."""
-        raise NotImplementedError('To be implemented')
+
+        operation = begin_operation('time_interval')
+        time_diff = self._data[DATETIME].max() - self._data[DATETIME].min()
+        self.last_operation = end_operation(operation)
+
+        return time_diff
 
     def get_bbox(self):
         """Creates the bounding box of the trajectories."""
-        raise NotImplementedError('To be implemented')
+        operation = begin_operation('get_bbox')
+
+        try:
+            bbox_ = (
+                self._data[LATITUDE].min().item(),
+                self._data[LONGITUDE].min().item(),
+                self._data[LATITUDE].max().item(),
+                self._data[LONGITUDE].max().item(),
+            )
+
+            self.last_operation = end_operation(operation)
+
+            return bbox_
+        except Exception as e:
+            self.last_operation = end_operation(operation)
+            raise e
 
     def plot_all_features(self):
         """Generate a visualization for each column that type is equal dtype."""
@@ -437,90 +510,96 @@ class VaexMoveDataFrame(vaex.dataframe.DataFrame, MoveDataFrameAbstractModel):
         """Show dataset information from dataframe."""
         raise NotImplementedError('To be implemented')
 
-    def min(self, axis=None, skipna=True, split_every=False, out=None):
+    def min(self,
+            expression,
+            binby=[],
+            limits=None,
+            shape=128,
+            selection=False,
+            delay=False,
+            progress=None,
+            edges=False,
+            array_type=None):
         """
-        Return the minimum of the values for the requested axis.
-
-        Parameters
-        ----------
-        axis: int, optional, default None, {index (0), columns (1)}.
-            Axis for the function to be applied on.
-        skipna: bool, optional, default None.
-            Exclude NA/null values when computing the result.
-        split_every:
-            ?
-        out:
-            ?
-
-        Returns
-        -------
-        max:Series or DataFrame (if level specified)
-            The minimum values for the request axis.
-
-        References
-        ----------
-        https://docs.dask.org/en/latest/dataframe-api.html#dask.dataframe.DataFrame.min
+        Return the minimum of the values for the requested expression
 
         """
 
-        raise NotImplementedError('To be implemented')
+        operation = begin_operation('min')
+        _min = self._data.min(expression,
+                              binby,
+                              limits,
+                              shape,
+                              selection,
+                              delay,
+                              progress,
+                              edges,
+                              array_type)
+        self.last_operation = end_operation(operation)
 
-    def max(self, axis=None, skipna=True, split_every=False, out=None):
+        return _min
+
+    def max(self,
+            expression,
+            binby=[],
+            limits=None,
+            shape=128,
+            selection=False,
+            delay=False,
+            progress=None):
         """
-        Return the maximum of the values for the requested axis..
-
-        Parameters
-        ----------
-        axis: int, optional, default None, {index (0), columns (1)}.
-            Axis for the function to be applied on.
-        skipna: bool, optional, default None.
-            Exclude NA/null values when computing the result.
-        split_every:
-            ?
-        out:
-            ?
-
-        Returns
-        -------
-        max:Series or DataFrame (if level specified)
-            The maximum values for the request axis.
-
-        References
-        ----------
-        https://docs.dask.org/en/latest/dataframe-api.html#dask.dataframe.DataFrame.max
+        Return the maximum of the values for the requested expression
 
         """
 
-        raise NotImplementedError('To be implemented')
+        operation = begin_operation('max')
+        _min = self._data.max(expression,
+                              binby,
+                              limits,
+                              shape,
+                              selection,
+                              delay,
+                              progress)
+        self.last_operation = end_operation(operation)
 
-    def count(self):
+        return _min
+
+    def count(self,
+              expression=None,
+              binby=[],
+              limits=None,
+              shape=128,
+              selection=False,
+              delay=False,
+              edges=False,
+              progress=None,
+              array_type=None):
         """Counts the non-NA cells for each column or row."""
-        raise NotImplementedError('To be implemented')
 
-    def groupby(self, by=None, **kwargs):
+        operation = begin_operation('count')
+        _count = self._data.count(expression,
+                                  binby,
+                                  limits,
+                                  shape,
+                                  selection,
+                                  delay,
+                                  edges,
+                                  progress,
+                                  array_type)
+        self.last_operation = end_operation(operation)
+
+        return _count
+
+    def groupby(self, by=None, agg=None):
         """
-        Groups dask DataFrame using a mapper or by a Series of columns.
-
-        Parameters
-        ----------
-        by : mapping, function, label, or list of labels, optional, default None
-            Used to determine the groups for the groupby.
-        **kwargs
-            Optional, only accepts keyword argument 'mutated'
-            and is passed to groupby.
-
-        Returns
-        -------
-        DataFrameGroupBy:
-            Returns groupby object that contains information about the groups.
-
-        References
-        ----------
-        https://docs.dask.org/en/latest/dataframe-api.html#dask.dataframe.DataFrame.groupby
-
+        Groups
         """
 
-        raise NotImplementedError('To be implemented')
+        operation = begin_operation('groupby')
+        _groupby = self._data.groupby(by, agg)
+        self.last_operation = end_operation(operation)
+
+        return _groupby
 
     def plot(self):
         """Plot the data of the dask DataFrame."""
